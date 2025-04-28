@@ -32,42 +32,25 @@ function getDBConnection()
 
 function loginUser($username, $email, $password)
 {
-    $conn = getDBConnection();
+    $pdo = getDBConnection();
 
+    if ($pdo) {
+        $sql = "SELECT * FROM users WHERE username = :username AND email = :email AND password = :password";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':username', $username);
+        $stmt->bindParam(':email', $email);
+        $stmt->bindParam(':password', $password);
 
-    if (!empty($username)) {
-        $stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
-        $stmt->execute([$username]);
+        $stmt->execute();
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    } elseif (!empty($email)) {
-        $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
-        $stmt->execute([$email]);
+        if ($user) {
+            echo "Login Successful!";
+
+        } else {
+            echo "Login Failed. Incorrect username, email, or password.";
+        }
     } else {
-        return "Please enter a username or email";
+        echo "Database connection failed.";
     }
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$user) {
-        return "User Not Found";
-    }
-    if ($password !== $user['password']) {
-        return "Incorrect password";
-
-    }
-    $_SESSION['userID'] = $user['userID'];
-    $_SESSION['userName'] = $user['username'];
-    $_SESSION['role'] = $user['role'];
-
-    return null;
-
-}
-
-function GetUsers(){
-    $conn = getDBConnection();
-    $query = "SELECT * FROM users";
-
-    $stmt = $conn->prepare($query);
-    $stmt->execute();
-
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);    
 }

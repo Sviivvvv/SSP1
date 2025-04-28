@@ -9,11 +9,11 @@
 
 <body>
 
-    <form action="/luxuryperfumestore/login" method="POST">
+    <form action="route.php" method="POST">
         <input type="text" placeholder="Username (optional)" name="username">
         <input type="email" placeholder="Email (optional)" name="email">
         <input type="password" placeholder="Password" name="password" required>
-        <button type="submit">Login</button>
+        <button type="submit" name="login">Login</button>
         <p>Don't Have An Account?</p>
         <a href="/signUp.php">Sign-up</a>
     </form>
