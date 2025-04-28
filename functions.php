@@ -1,32 +1,26 @@
 <?php
 
 //Database connection
-$host = "localhost";
-$dbname = "luxury_perfume_store";
-$username = "root";
-$password = "";
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'luxury_perfume_store');
+define('DB_USER', 'root');
+define('DB_PASS', '');
 
 //Function to connect to DB
 function getDBConnection()
 {
-    global $host, $dbname, $username, $password;
     try {
         $pdo = new PDO(
-            "mysql:host=$host;dbname=$dbname",
-            $username,
-            $password
+            "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME,
+            DB_USER,
+            DB_PASS
         );
-        $pdo->setAttribute(
-            PDO::ATTR_ERRMODE,
-            PDO::ERRMODE_EXCEPTION
-        );
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         return $pdo;
     } catch (PDOException $e) {
-        echo "Connection Failed: " . $e->getMessage();
-
+        die("Connection Failed: " . $e->getMessage());
     }
 }
-
 
 //login function
 
@@ -35,22 +29,24 @@ function loginUser($username, $email, $password)
     $pdo = getDBConnection();
 
     if ($pdo) {
-        $sql = "SELECT * FROM users WHERE username = :username AND email = :email AND password = :password";
-        $stmt = $pdo->prepare($sql);
-        $stmt->bindParam(':username', $username);
-        $stmt->bindParam(':email', $email);
-        $stmt->bindParam(':password', $password);
 
-        $stmt->execute();
+        $query = "SELECT * FROM users WHERE username = ? AND email = ?";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$username, $email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user) {
-            echo "Login Successful!";
+            if ($password === $user['password']) {
+                return $user;
+            } else {
+                return "invalid password";
+
+            }
 
         } else {
-            echo "Login Failed. Incorrect username, email, or password.";
+            return "login Failed. Incorrect username or email";
         }
     } else {
-        echo "Database connection failed.";
+        return "Database connection failed";
     }
 }
