@@ -1,10 +1,22 @@
 <?php
-include_once 'functions.php';
+require_once 'functions.php';
 
-$products = getLimitedTimeProducts();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
+// checking if user is logged in
+
+if (!isset($_SESSION['user_id'])) {
+    echo "<script>
+        alert('You must be logged in to view your order history.');
+        window.location.href = '/luxuryperfumestore/login';
+    </script>";
+    exit;
+}
+$userID = $_SESSION['user_id'];
+$orderHistory = getOrderHistory($userID);
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -103,89 +115,68 @@ $products = getLimitedTimeProducts();
         </script>
     </header>
 
-    <section class="p-6 mt-10 sm:mt-16 md:mt-28">
-        <h2 class="text-xl font-bold mb-9">Advertisements</h2>
-        <div class="flex space-x-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide">
-            <!-- Ad Cards -->
-            <div class="min-w-[200px] rounded-2xl overflow-hidden flex-shrink-0 snap-center ">
-                <img src="./adsPictures/Calvin Klein Eternity for Men.png" alt="" class="w-full h-60 object-cover">
-            </div>
-            <div class="min-w-[200px] rounded-2xl overflow-hidden flex-shrink-0 snap-center ">
-                <img src=" ./adsPictures/Calvin Klein CK One.png" alt="" class="w-full h-60 object-cover">
-            </div>
-            <div class="min-w-[200px] rounded-2xl overflow-hidden flex-shrink-0 snap-center ">
-                <img src="./adsPictures/Chanel Coco Mademoiselle.png" alt="" class="w-full h-60 object-cover">
-            </div>
-            <div class="min-w-[200px] rounded-2xl overflow-hidden flex-shrink-0 snap-center ">
-                <img src="./adsPictures/Dior J’adore.png" alt="" class="w-full h-60 object-cover">
-            </div>
-            <div class="min-w-[200px] rounded-2xl overflow-hidden flex-shrink-0 snap-center ">
-                <img src="./adsPictures/Yves Saint Laurent Black Opium.png" alt="" class="w-full h-60 object-cover">
-            </div>
-        </div>
-    </section>
 
+    <section class="p-4 sm:p-6 mt-20 w-full max-w-screen-2xl mx-auto bg-[#122C4F] text-[#FBF9E4]">
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6 text-center">Order History</h1>
 
-    <!---Lmited products--->
-    <section class="p-6 mt-20">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-lg font-bold">Limited-Time Offers</h2>
-            <a href="/luxuryperfumestore/productPage"
-                class="hover:text-[DAD3C9] font-bold transition-colors duration-200">
-                View More &rarr;
-            </a>
-        </div>
-        <div class="flex gap-6 overflow-x-auto pb-4 text-[#122C4F] scroll-smooth snap-x snap-mandatory">
-            <?php foreach ($products as $product): ?>
-            <div
-                class="flex-shrink-0 w-64 bg-[#FBF9E4] rounded-xl shadow hover:shadow-lg transition-all duration-300 overflow-hidden group snap-start">
-                <div class="relative h-48">
-                    <img src="<?= htmlspecialchars($product['imagePath']) ?>"
-                        class="w-full h-full object-contain p-6 bg-[#FBF9E4] transition-transform duration-500 group-hover:scale-105">
-                    <div
-                        class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-80 transition-opacity duration-300 flex items-center justify-center">
-                        <p class="text-white font-extrabold text-center text-sm px-4">
-                            <?= htmlspecialchars($product['description']) ?>
-                        </p>
+        <?php if (empty($orderHistory)): ?>
+            <p class="text-center text-sm sm:text-lg lg:text-xl">You have no previous orders.</p>
+            <div class="text-center mt-4">
+                <a href="/luxuryperfumestore/productPage"
+                    class="inline-block px-4 py-2 border font-bold bg-[#FBF9E4] text-[#122C4F] rounded hover:bg-[#f1edd9] text-sm sm:text-base transition hover:shadow-lg hover:-translate-y-0.5">
+                    Start Shopping
+                </a>
+            </div>
+        <?php else: ?>
+
+            <div class="mt-6 w-full mx-auto max-w-6xl">
+                <div class="rounded-xl overflow-hidden border border-[#FBF9E4]/30">
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-[550px] md:min-w-0 border-collapse text-xs sm:text-sm">
+                            <thead>
+                                <tr class="bg-[#FBF9E4] text-[#122C4F]">
+                                    <th class="text-center py-3 px-3 border border-[#FBF9E4]/30">Order ID</th>
+                                    <th class="text-center py-3 px-3 border border-[#FBF9E4]/30">Product Name</th>
+                                    <th class="text-center py-3 px-3 border border-[#FBF9E4]/30">Quantity</th>
+                                    <th class="text-center py-3 px-3 border border-[#FBF9E4]/30">Price (LKR)</th>
+                                    <th class="text-center py-3 px-3 border border-[#FBF9E4]/30">Total (LKR)</th>
+                                    <th class="text-center py-3 px-3 border border-[#FBF9E4]/30">Order Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($orderHistory as $order): ?>
+                                    <tr class="bg-[#122C4F] hover:bg-[#1a3a6a] transition-colors">
+                                        <td class="py-3 px-3 text-center border border-[#FBF9E4]/30">
+                                            <?= htmlspecialchars($order['orderID']) ?>
+                                        </td>
+                                        <td class="py-3 px-3 text-center border border-[#FBF9E4]/30">
+                                            <?= htmlspecialchars($order['productName']) ?>
+                                        </td>
+                                        <td class="py-3 px-3 text-center border border-[#FBF9E4]/30">
+                                            <?= htmlspecialchars($order['quantity']) ?>
+                                        </td>
+                                        <td class="py-3 px-3 text-center border border-[#FBF9E4]/30">
+                                            <?= number_format($order['price'], 2) ?>
+                                        </td>
+                                        <td class="py-3 px-3 text-center border border-[#FBF9E4]/30 font-semibold">
+                                            <?= number_format($order['totalPrice'], 2) ?>
+                                        </td>
+                                        <td class="py-3 px-3 text-center border border-[#FBF9E4]/30">
+                                            <?= htmlspecialchars($order['orderDate']) ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="p-4">
-                    <h3 class="text-lg font-semibold truncate">
-                        <?= htmlspecialchars($product['ProductName']) ?>
-                    </h3>
-                    <p class="text-xl font-bold mt-1">
-                        LKR
-                        <?= number_format($product['price'], 2) ?>
-                    </p>
-                </div>
             </div>
-            <?php endforeach; ?>
-        </div>
 
+
+        <?php endif; ?>
     </section>
 
-    <section class="p-6 w-full">
-        <h2 class="text-2xl font-bold mb-6 text-center">Available Brands</h2>
-        <div class="overflow-x-auto snap-x snap-mandatory scrollbar-hide">
-            <div class="flex justify-center space-x-6 px-6">
-                <div class="w-52 h-52 rounded-full overflow-hidden flex-shrink-0 snap-center bg-[#FBF9E4]">
-                    <img src="./availableBrands/Calvin Klein.png" alt="Calvin Klein" class="w-full h-full object-cover">
-                </div>
-                <div class="w-52 h-52 rounded-full overflow-hidden flex-shrink-0 snap-center bg-[#F2F0DE]">
-                    <img src="./availableBrands/CHANEL.png" alt="CHANEL" class="w-full h-full object-cover">
-                </div>
-                <div class="w-52 h-52 rounded-full overflow-hidden flex-shrink-0 snap-center bg-[#F2F0DE]">
-                    <img src="./availableBrands/YSL.png" alt="YSL" class="w-full h-full object-cover">
-                </div>
-                <div class="w-52 h-52 rounded-full overflow-hidden flex-shrink-0 snap-center bg-[#F2F0DE]">
-                    <img src="./availableBrands/DIOR.png" alt="DIOR" class="w-full h-full object-cover">
-                </div>
-                <div class="w-52 h-52 rounded-full overflow-hidden flex-shrink-0 snap-center bg-[#F2F0DE]">
-                    <img src="./availableBrands/AMOUAGE.png" alt="AMOUAGE" class="w-full h-full object-cover">
-                </div>
-            </div>
-        </div>
-    </section>
+
 
 
     <footer class="bg-[#122C4F] border-t mt-8">

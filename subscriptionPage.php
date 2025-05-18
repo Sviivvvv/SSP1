@@ -1,7 +1,8 @@
 <?php
 include_once 'functions.php';
 
-$products = getLimitedTimeProducts();
+
+$subscriptionProducts = getSubscriptionProducts();
 
 ?>
 
@@ -13,7 +14,6 @@ $products = getLimitedTimeProducts();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         body {
@@ -100,95 +100,83 @@ $products = getLimitedTimeProducts();
                     }, 300);
                 }
             });
+
+            document.addEventListener('DOMContentLoaded', () => {
+                document.querySelectorAll('.addToCart').forEach(form => {
+                    form.addEventListener('submit', function (e) {
+                        e.preventDefault();
+
+                        const formData = new FormData(form);
+
+                        fetch('route.php', {
+                            method: 'POST',
+                            body: formData
+                        })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert(data.message);
+                                } else {
+                                    alert(data.message || 'Failed to add to cart.');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                            });
+                    });
+                });
+            });
+
+
         </script>
     </header>
-
     <section class="p-6 mt-10 sm:mt-16 md:mt-28">
-        <h2 class="text-xl font-bold mb-9">Advertisements</h2>
-        <div class="flex space-x-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide">
-            <!-- Ad Cards -->
-            <div class="min-w-[200px] rounded-2xl overflow-hidden flex-shrink-0 snap-center ">
-                <img src="./adsPictures/Calvin Klein Eternity for Men.png" alt="" class="w-full h-60 object-cover">
-            </div>
-            <div class="min-w-[200px] rounded-2xl overflow-hidden flex-shrink-0 snap-center ">
-                <img src=" ./adsPictures/Calvin Klein CK One.png" alt="" class="w-full h-60 object-cover">
-            </div>
-            <div class="min-w-[200px] rounded-2xl overflow-hidden flex-shrink-0 snap-center ">
-                <img src="./adsPictures/Chanel Coco Mademoiselle.png" alt="" class="w-full h-60 object-cover">
-            </div>
-            <div class="min-w-[200px] rounded-2xl overflow-hidden flex-shrink-0 snap-center ">
-                <img src="./adsPictures/Dior J’adore.png" alt="" class="w-full h-60 object-cover">
-            </div>
-            <div class="min-w-[200px] rounded-2xl overflow-hidden flex-shrink-0 snap-center ">
-                <img src="./adsPictures/Yves Saint Laurent Black Opium.png" alt="" class="w-full h-60 object-cover">
-            </div>
-        </div>
-    </section>
+        <h2 class="text-xl font-bold mb-9">
+            Subscriptions
+        </h2>
 
-
-    <!---Lmited products--->
-    <section class="p-6 mt-20">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-lg font-bold">Limited-Time Offers</h2>
-            <a href="/luxuryperfumestore/productPage"
-                class="hover:text-[DAD3C9] font-bold transition-colors duration-200">
-                View More &rarr;
-            </a>
-        </div>
-        <div class="flex gap-6 overflow-x-auto pb-4 text-[#122C4F] scroll-smooth snap-x snap-mandatory">
-            <?php foreach ($products as $product): ?>
-            <div
-                class="flex-shrink-0 w-64 bg-[#FBF9E4] rounded-xl shadow hover:shadow-lg transition-all duration-300 overflow-hidden group snap-start">
-                <div class="relative h-48">
-                    <img src="<?= htmlspecialchars($product['imagePath']) ?>"
-                        class="w-full h-full object-contain p-6 bg-[#FBF9E4] transition-transform duration-500 group-hover:scale-105">
+        <div class="space-y-8 sm:space-y-10 mx-auto">
+            <?php foreach ($subscriptionProducts as $product): ?>
+                <div class="flex flex-col items-center">
+                    <!-- Card container -->
                     <div
-                        class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-80 transition-opacity duration-300 flex items-center justify-center">
-                        <p class="text-white font-extrabold text-center text-sm px-4">
-                            <?= htmlspecialchars($product['description']) ?>
+                        class="bg-[#FBF9E4] text-[#122C4F] p-5 sm:p-6 rounded-lg shadow-sm w-full max-w-[300px] sm:max-w-[600px]">
+                        <!-- Image container -->
+                        <div
+                            class="mb-4 mx-auto w-24 h-24 sm:w-32 sm:h-32 rounded-lg overflow-hidden border-2 border-[#122C4F]">
+                            <img src="<?= htmlspecialchars($product['imagePath'] ?? 'placeholder.jpg'); ?>"
+                                alt="<?= htmlspecialchars($product['ProductName']); ?>" class="w-full h-full object-cover">
+                        </div>
+
+                        <!-- Text content -->
+                        <h3 class="text-sm sm:text-base font-semibold mb-3 text-center leading-tight">
+                            <?= htmlspecialchars($product['ProductName']); ?>
+                        </h3>
+                        <p class="text-xs sm:text-sm font-medium text-[#0f203d] mb-4 text-center">
+                            Rs.<?= number_format($product['price'], 0); ?>/Month
                         </p>
+                        <p class="text-xs text-gray-600 mb-6 text-center leading-snug">
+                            <?= htmlspecialchars($product['description']); ?>
+                        </p>
+
+                        <!-- Centered button with padding -->
+                        <form action="route.php" method="POST" class="mt-6 mb-2 w-full flex justify-center addToCart">
+                            <input type="hidden" name="action" value="addToCart" />
+                            <input type="hidden" name="productID" value="<?= $product['productID']; ?>" />
+                            <button type="submit"
+                                class="bg-[#122C4F] text-[#FBF9E4] px-10 py-2 rounded hover:bg-[#0f203d] hover:shadow-lg hover:translate-y-[-2px] transition-all duration-300">
+                                Add to Cart
+                            </button>
+                        </form>
                     </div>
                 </div>
-                <div class="p-4">
-                    <h3 class="text-lg font-semibold truncate">
-                        <?= htmlspecialchars($product['ProductName']) ?>
-                    </h3>
-                    <p class="text-xl font-bold mt-1">
-                        LKR
-                        <?= number_format($product['price'], 2) ?>
-                    </p>
-                </div>
-            </div>
             <?php endforeach; ?>
         </div>
-
-    </section>
-
-    <section class="p-6 w-full">
-        <h2 class="text-2xl font-bold mb-6 text-center">Available Brands</h2>
-        <div class="overflow-x-auto snap-x snap-mandatory scrollbar-hide">
-            <div class="flex justify-center space-x-6 px-6">
-                <div class="w-52 h-52 rounded-full overflow-hidden flex-shrink-0 snap-center bg-[#FBF9E4]">
-                    <img src="./availableBrands/Calvin Klein.png" alt="Calvin Klein" class="w-full h-full object-cover">
-                </div>
-                <div class="w-52 h-52 rounded-full overflow-hidden flex-shrink-0 snap-center bg-[#F2F0DE]">
-                    <img src="./availableBrands/CHANEL.png" alt="CHANEL" class="w-full h-full object-cover">
-                </div>
-                <div class="w-52 h-52 rounded-full overflow-hidden flex-shrink-0 snap-center bg-[#F2F0DE]">
-                    <img src="./availableBrands/YSL.png" alt="YSL" class="w-full h-full object-cover">
-                </div>
-                <div class="w-52 h-52 rounded-full overflow-hidden flex-shrink-0 snap-center bg-[#F2F0DE]">
-                    <img src="./availableBrands/DIOR.png" alt="DIOR" class="w-full h-full object-cover">
-                </div>
-                <div class="w-52 h-52 rounded-full overflow-hidden flex-shrink-0 snap-center bg-[#F2F0DE]">
-                    <img src="./availableBrands/AMOUAGE.png" alt="AMOUAGE" class="w-full h-full object-cover">
-                </div>
-            </div>
-        </div>
     </section>
 
 
-    <footer class="bg-[#122C4F] border-t mt-8">
+
+    <footer class=" bg-[#122C4F] border-t mt-8">
         <div class="container mx-auto px-4 py-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-md font-semibold">
             <div>
                 <h4 class="font-semibold mb-2">Contact Us</h4>
