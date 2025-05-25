@@ -107,6 +107,7 @@ $products = adminsGetAllProducts();
                                 <th class="px-2 py-2 text-left">Name</th>
                                 <th class="px-2 py-2 text-left">Price</th>
                                 <th class="px-2 py-2 text-left">Category</th>
+                                <th class="px-2 py-2 text-left">Description</th>
                                 <th class="px-10 py-2 text-left">Image</th>
                                 <th class="px-2 py-2 text-left">Sub</th>
                                 <th class="px-2 py-2 text-left">Deleted</th>
@@ -120,6 +121,7 @@ $products = adminsGetAllProducts();
                                     </td>
                                     <td class="px-2 py-1"><?= number_format($product['price'], 2) ?> LKR</td>
                                     <td class="px-2 py-1 capitalize"><?= htmlspecialchars($product['category']) ?></td>
+                                    <td class="px-2 py-1 capitalize"><?= htmlspecialchars($product['description']) ?></td>
                                     <td class="px-2 py-2 min-w-[120px]"> <!-- Added min-width to cell -->
                                         <?php if (!$product['isSubscription']): ?>
                                             <img src="<?= htmlspecialchars($product['imagePath']) ?>" alt="Product Image"

@@ -15,7 +15,7 @@ $products = getLimitedTimeProducts();
     <title>Index</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="./src/js/main.js" defer></script>
-    <script src="./src/js/index.js" defer></script>
+
 
     <style>
         body {

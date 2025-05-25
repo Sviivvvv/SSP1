@@ -7,7 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $requestURL = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
 
-// === Supported GET routes ===
+// Supported GET routes
 $getRoutes = [
     'luxuryperfumestore/login' => 'login.php',
     'luxuryperfumestore/signUp' => 'signUp.php',
@@ -27,7 +27,7 @@ $getRoutes = [
 
 ];
 
-// === Serve GET routes ===
+//  GET routes
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($getRoutes[$requestURL])) {
 
     $adminRoutes = [
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($getRoutes[$requestURL])) {
     exit;
 }
 
-// === POST: Login ===
+// Login
 if ($requestURL === 'luxuryperfumestore/login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if (!isset($_POST['username'], $_POST['email'], $_POST['password'])) {
@@ -77,7 +77,7 @@ if ($requestURL === 'luxuryperfumestore/login' && $_SERVER['REQUEST_METHOD'] ===
     exit;
 }
 
-// === POST: Signup ===
+//  Signup
 if ($requestURL === 'luxuryperfumestore/signUp' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if (empty($_POST['username']) || empty($_POST['email']) || empty($_POST['password'])) {
@@ -101,7 +101,7 @@ if ($requestURL === 'luxuryperfumestore/signUp' && $_SERVER['REQUEST_METHOD'] ==
     exit;
 }
 
-// === POST: Checkout ===
+//  Checkout 
 if ($requestURL === 'luxuryperfumestore/checkout' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_SESSION['userID'])) {
         echo json_encode(['success' => false, 'message' => 'You must be logged in to checkout.']);
@@ -153,6 +153,8 @@ if ($requestURL === 'luxuryperfumestore/checkout' && $_SERVER['REQUEST_METHOD'] 
         exit;
     }
 }
+
+//admin add product manage
 if ($requestURL === 'luxuryperfumestore/adminDashboard-Products' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     // Verify admin
     if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
@@ -198,12 +200,12 @@ if ($requestURL === 'luxuryperfumestore/adminDashboard-Products' && $_SERVER['RE
             // Filter out empty fields except productID
             $data = [];
 
-            // Only add if not empty (empty string or null), except price can be 0 or "0"
+            // Only add if not empty 
             if (isset($_POST['productName']) && trim($_POST['productName']) !== '') {
                 $data['productName'] = $_POST['productName'];
             }
             if (isset($_POST['price']) && $_POST['price'] !== '') {
-                // Accept 0 and other numbers
+
                 $data['price'] = $_POST['price'];
             }
             if (isset($_POST['category']) && trim($_POST['category']) !== '') {
@@ -260,7 +262,7 @@ if ($requestURL === 'luxuryperfumestore/adminDashboard-Products' && $_SERVER['RE
         exit;
     }
 }
-
+//admin manage user
 if ($requestURL === 'luxuryperfumestore/adminDashboard-Users' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     // Admin check
     if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
@@ -354,6 +356,8 @@ if ($requestURL === 'luxuryperfumestore/adminDashboard-Users' && $_SERVER['REQUE
     }
 }
 
+//admin orders filter
+
 if ($requestURL === 'luxuryperfumestore/adminDashboard-Orders/filter' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $userID = !empty($_POST['userID']) ? $_POST['userID'] : null;
@@ -379,7 +383,7 @@ if ($requestURL === 'luxuryperfumestore/adminDashboard-Orders/filter' && $_SERVE
     }
 }
 
-// === POST: Cart Actions ===
+//  Cart Actions 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? null;
 
@@ -428,6 +432,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+
+//admin orders clear filter
+
 if ($requestURL === 'luxuryperfumestore/adminDashboard-Orders/clear-filters' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
         http_response_code(403);
@@ -439,7 +446,7 @@ if ($requestURL === 'luxuryperfumestore/adminDashboard-Orders/clear-filters' && 
     header('Location: /luxuryperfumestore/adminDashboard-Orders');
     exit;
 }
-// === 404 Not Found fallback ===
+// 404 Not Found fallback 
 http_response_code(404);
 echo "<h1>404 - Page Not Found</h1><p>The page you requested was not found.</p>";
 exit;

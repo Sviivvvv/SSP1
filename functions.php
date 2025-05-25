@@ -59,6 +59,7 @@ function loginUser($username, $email, $password)
     }
 }
 
+//sign up function
 function signUpUser($username, $email, $password)
 {
     $pdo = getDBConnection();
@@ -80,9 +81,10 @@ function signUpUser($username, $email, $password)
 
     return $sucess ? true : "Registration failed. Please try again";
 
-    //rember to change to if else
 }
 
+
+//get limited category products
 function getLimitedTimeProducts()
 {
     $pdo = getDBConnection();
@@ -91,6 +93,7 @@ function getLimitedTimeProducts()
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+//get mens category products
 function getMensProducts()
 {
     $pdo = getDBConnection();
@@ -99,6 +102,7 @@ function getMensProducts()
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+//get womens category products
 function getWomensProducts()
 {
     $pdo = getDBConnection();
@@ -106,9 +110,6 @@ function getWomensProducts()
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-
-// NEW FUNCTIONS
-
 
 // Add to cart function
 function addToCart($userID, $productID, $quantity = 1)
@@ -164,6 +165,7 @@ function addToCart($userID, $productID, $quantity = 1)
     return true;
 }
 
+// subscription manage function
 function userSubscription($userID, $subscriptionID)
 {
     $pdo = getDBConnection();
@@ -182,7 +184,8 @@ function userSubscription($userID, $subscriptionID)
 
     return true;
 }
-// Updated removeFromCart function
+
+// removeFromCart function
 function removeFromCart($userID, $productID)
 {
     $pdo = getDBConnection();
@@ -199,7 +202,7 @@ function removeFromCart($userID, $productID)
     return false;
 }
 
-// Updated updateCartQuantity function
+// updateCartQuantity function
 function updateCartQuantity($userID, $productID, $quantity)
 {
     $pdo = getDBConnection();
@@ -218,7 +221,7 @@ function updateCartQuantity($userID, $productID, $quantity)
     return $stmt->execute([$quantity, $cart['cartID'], $productID]);
 }
 
-// Updated getCartItems function
+// getCartItems function
 function getCartItems($userID)
 {
     $pdo = getDBConnection();
@@ -233,7 +236,7 @@ function getCartItems($userID)
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// getCartSubtotal remains the same
+// getCartSubtotal function
 function getCartSubtotal($userID)
 {
     $items = getCartItems($userID);
@@ -246,7 +249,7 @@ function getCartSubtotal($userID)
     return $subtotal;
 }
 
-
+//order item functiom
 function addOrderItem($orderID, $productID, $price, $quantity)
 {
     $pdo = getDBConnection();
@@ -255,6 +258,7 @@ function addOrderItem($orderID, $productID, $price, $quantity)
 
 }
 
+//clearcart function
 function clearCart($userID)
 {
     $pdo = getDBConnection();
@@ -270,58 +274,7 @@ function clearCart($userID)
 
 }
 
-
-/*function placeOrder($userID)
-{
-    $pdo = getDBConnection();
-    $cartItems = getCartItems($userID);
-    $totalAmount = getCartSubtotal($userID);
-
-
-    if (empty($cartItems)) {
-        return false;
-    }
-
-    // Check for multiple subscriptions in cart
-    $subscriptionCount = 0;
-    $subscriptionID = null;
-    foreach ($cartItems as $item) {
-        if ($item['isSubscription'] == 1) {
-            $subscriptionCount++;
-            $subscriptionID = $item['productID'];
-        }
-    }
-
-    if ($subscriptionCount > 1) {
-        throw new Exception("You can only have one subscription at a time.");
-    }
-
-    $stmt = $pdo->prepare("INSERT INTO orders (userID, orderDate, totalAmount) VALUES (?, NOW(), ?)");
-    $stmt->execute([$userID, $totalAmount]);
-    $orderID = $pdo->lastInsertId();
-
-    foreach ($cartItems as $item) {
-        addOrderItem($orderID, $item['productID'], $item['price'], $item['quantity']);
-    }
-
-    //checking if sub is in cart
-
-    if ($subscriptionID) {
-        try {
-            userSubscription($userID, $subscriptionID);
-        } catch (Exception $e) {
-            // If subscription fails, cancel the order
-            $pdo->prepare("DELETE FROM orders WHERE orderID = ?")->execute([$orderID]);
-            $pdo->prepare("DELETE FROM orderItem WHERE orderID = ?")->execute([$orderID]);
-            throw $e; // Re-throw the exception
-        }
-    }
-
-    clearCart($userID);
-
-    return $orderID;
-} */
-
+// place order function
 function placeOrder($userID)
 {
     $pdo = getDBConnection();
@@ -382,7 +335,7 @@ function placeOrder($userID)
     return $orderID;
 }
 
-
+//get subcription function
 function getSubscriptionProducts()
 {
     $pdo = getDBConnection();
@@ -391,6 +344,8 @@ function getSubscriptionProducts()
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+
+// get users order history function
 function getOrderHistory($userID)
 {
     $pdo = getDBConnection();
@@ -415,9 +370,10 @@ function getOrderHistory($userID)
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// filter group orders function
 function getGroupedOrderHistory($userID)
 {
-    // First get the raw order history
+    // get order history
     $orderHistory = getOrderHistory($userID);
 
     // Group orders by orderID
@@ -441,12 +397,15 @@ function getGroupedOrderHistory($userID)
     return $groupedOrders;
 }
 
+//admin add products
 function adminAddProduct($productName, $price, $category, $description, $imagePath, $isSubscription)
 {
     $pdo = getDBConnection();
     $stmt = $pdo->prepare("INSERT INTO product (productName, price, category, description, imagePath, isSubscription) VAlUES (?, ?, ?, ?, ?, ?)");
     return $stmt->execute([$productName, $price, $category, $description, $imagePath, $isSubscription ? 1 : 0]);
 }
+
+//admin add user
 function adminAddUser($username, $email, $password)
 {
     $pdo = getDBConnection();
@@ -456,6 +415,8 @@ function adminAddUser($username, $email, $password)
     return $stmt->execute([$username, $email, $password, $subscriptionID, $role]);
 }
 
+
+//admin update products
 function adminUpdateProduct($productID, $data)
 {
     $pdo = getDBConnection();
@@ -503,6 +464,7 @@ function adminUpdateProduct($productID, $data)
     return $stmt->execute($values);
 }
 
+// admin update users
 function adminUpdateUsers($userID, $data)
 {
     $pdo = getDBConnection();
@@ -542,6 +504,8 @@ function adminUpdateUsers($userID, $data)
     $stmt = $pdo->prepare($query);
     return $stmt->execute($values);
 }
+
+//admin delete products
 function adminDeleteProduct($productID)
 {
     $pdo = getDBConnection();
@@ -549,6 +513,7 @@ function adminDeleteProduct($productID)
     return $stmt->execute([$productID]);
 }
 
+//admin delete users
 function adminDeleteUser($userID)
 {
 
@@ -565,6 +530,8 @@ function adminDeleteUser($userID)
     return false;
 }
 
+//get all products for admin
+
 function adminsGetAllProducts()
 {
     $pdo = getDBConnection();
@@ -574,6 +541,7 @@ function adminsGetAllProducts()
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+//get all users for admin
 function adminGetAllUsers()
 {
     $pdo = getDBConnection();
@@ -584,24 +552,13 @@ function adminGetAllUsers()
 
 }
 
-function adminGetAllOrders()
+
+
+//admin gets all orders
+function adminFilterOrders($userID = null, $date = null)
 {
     $pdo = getDBConnection();
-    $sql = "
-        SELECT o.orderID, o.userID, o.orderDate, o.totalAmount,
-               oi.productID, p.productName, oi.price, oi.quantity
-        FROM orders o
-        JOIN orderItem oi ON o.orderID = oi.orderID
-        JOIN product p ON oi.productID = p.productID
-        ORDER BY o.orderDate DESC, o.orderID DESC";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute();
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
 
-function adminFilterOrders($userID = null, $date = null) {
-    $pdo = getDBConnection();
-    
     $sql = "
         SELECT o.orderID, o.userID, o.orderDate, o.totalAmount,
                oi.productID, p.productName, oi.price, oi.quantity
@@ -609,21 +566,21 @@ function adminFilterOrders($userID = null, $date = null) {
         JOIN orderItem oi ON o.orderID = oi.orderID
         JOIN product p ON oi.productID = p.productID
         WHERE 1=1";
-    
+
     $params = [];
-    
+
     if ($userID) {
         $sql .= " AND o.userID = :userID";
         $params[':userID'] = $userID;
     }
-    
+
     if ($date) {
         $sql .= " AND DATE(o.orderDate) = :orderDate";
         $params[':orderDate'] = $date;
     }
-    
+
     $sql .= " ORDER BY o.orderDate DESC, o.orderID DESC";
-    
+
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
