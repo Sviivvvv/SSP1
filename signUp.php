@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link href="output.css" rel="stylesheet">
+    <title>signUp</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         body {
             font-family: 'Garamond', srif;
@@ -14,9 +14,11 @@
 </head>
 
 <body class="bg-[#122C4F] text-[#FBF9E4] min-h-screen flex flex-col">
-    <div class="absolute top-4 left-4">
+    <!-- Logo -->
+    <div class="absolute mt-3 top-4 left-6">
         <p class="text-xl sm:text-3xl md:text-4xl font-bold">Scent Memoir</p>
     </div>
+
 
     <div class="flex flex-1 items-center justify-center">
         <div class="bg-[#FBF9E4] backdrop-blur-lg border border-transparent p-10 rounded-2xl w-full max-w-sm shadow-xl">

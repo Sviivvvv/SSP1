@@ -20,9 +20,11 @@ if (session_status() === PHP_SESSION_NONE) {
 </head>
 
 <body class="bg-[#122C4F] text-[#FBF9E4] min-h-screen flex flex-col">
-    <div class="absolute top-4 left-4">
+    <!-- Logo -->
+    <div class="absolute mt-3 top-4 left-6">
         <p class="text-xl sm:text-3xl md:text-4xl font-bold">Scent Memoir</p>
     </div>
+
 
 
     <div class="flex flex-1 items-center justify-center">

@@ -26,7 +26,10 @@ function getDBConnection()
         die("Connection Failed: " . $e->getMessage());
     }
 }
-
+function isLoggedIn()
+{
+    return isset($_SESSION['userID']);
+}
 //login function
 
 function loginUser($username, $email, $password)
@@ -40,8 +43,11 @@ function loginUser($username, $email, $password)
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user) {
+        if (!empty($user['isDeleted']) && $user['isDeleted'] == 1) {
+            throw new Exception('Account unavailable');
+        }
         if ($password === $user['password']) {
-            $_SESSION['user_id'] = $user['userID'];
+            $_SESSION['userID'] = $user['userID'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
             return $user;
@@ -80,7 +86,7 @@ function signUpUser($username, $email, $password)
 function getLimitedTimeProducts()
 {
     $pdo = getDBConnection();
-    $stmt = $pdo->prepare("SELECT * FROM product WHERE category = 'limited'");
+    $stmt = $pdo->prepare("SELECT * FROM product WHERE category = 'limited'AND isDeleted = 0");
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -88,7 +94,7 @@ function getLimitedTimeProducts()
 function getMensProducts()
 {
     $pdo = getDBConnection();
-    $stmt = $pdo->prepare("SELECT * FROM product WHERE category = 'men'");
+    $stmt = $pdo->prepare("SELECT * FROM product WHERE category = 'men'AND isDeleted = 0");
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -96,7 +102,7 @@ function getMensProducts()
 function getWomensProducts()
 {
     $pdo = getDBConnection();
-    $stmt = $pdo->prepare("SELECT * FROM product WHERE category = 'women'");
+    $stmt = $pdo->prepare("SELECT * FROM product WHERE category = 'women'AND isDeleted = 0");
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -164,16 +170,17 @@ function userSubscription($userID, $subscriptionID)
 
     //making sure only one sub at a time
 
-    $stmt = $pdo->prepare("SELECT subscriptionID FROM users WHERE userID =?");
-    $stmt->execute([$userID]);
+    $stmt = $pdo->prepare("SELECT subscriptionID FROM users WHERE userID =? AND subscriptionID =?");
+    $stmt->execute([$userID, $subscriptionID]);
     $currentSubscription = $stmt->fetch();
 
-    if ($currentSubscription && $currentSubscription['subscriptionID']) {
-        throw new Exception("You already have an active subscription.");
+    if ($currentSubscription) {
+        throw new Exception("You already have this subscription active.");
     }
-
     $stmt = $pdo->prepare("UPDATE users SET subscriptionID = ? WHERE userID =?");
     $stmt->execute([$subscriptionID, $userID]);
+
+    return true;
 }
 // Updated removeFromCart function
 function removeFromCart($userID, $productID)
@@ -264,7 +271,7 @@ function clearCart($userID)
 }
 
 
-function placeOrder($userID)
+/*function placeOrder($userID)
 {
     $pdo = getDBConnection();
     $cartItems = getCartItems($userID);
@@ -273,6 +280,20 @@ function placeOrder($userID)
 
     if (empty($cartItems)) {
         return false;
+    }
+
+    // Check for multiple subscriptions in cart
+    $subscriptionCount = 0;
+    $subscriptionID = null;
+    foreach ($cartItems as $item) {
+        if ($item['isSubscription'] == 1) {
+            $subscriptionCount++;
+            $subscriptionID = $item['productID'];
+        }
+    }
+
+    if ($subscriptionCount > 1) {
+        throw new Exception("You can only have one subscription at a time.");
     }
 
     $stmt = $pdo->prepare("INSERT INTO orders (userID, orderDate, totalAmount) VALUES (?, NOW(), ?)");
@@ -285,10 +306,74 @@ function placeOrder($userID)
 
     //checking if sub is in cart
 
+    if ($subscriptionID) {
+        try {
+            userSubscription($userID, $subscriptionID);
+        } catch (Exception $e) {
+            // If subscription fails, cancel the order
+            $pdo->prepare("DELETE FROM orders WHERE orderID = ?")->execute([$orderID]);
+            $pdo->prepare("DELETE FROM orderItem WHERE orderID = ?")->execute([$orderID]);
+            throw $e; // Re-throw the exception
+        }
+    }
+
+    clearCart($userID);
+
+    return $orderID;
+} */
+
+function placeOrder($userID)
+{
+    $pdo = getDBConnection();
+    $cartItems = getCartItems($userID);
+    $totalAmount = getCartSubtotal($userID);
+
+    if (empty($cartItems)) {
+        return false;
+    }
+
+    // Check for multiple subscriptions in cart
+    $subscriptionCount = 0;
+    $subscriptionID = null;
     foreach ($cartItems as $item) {
         if ($item['isSubscription'] == 1) {
-            userSubscription($userID, $item['productID']);
-            break;
+            $subscriptionCount++;
+            $subscriptionID = $item['productID'];
+        }
+    }
+
+    if ($subscriptionCount > 1) {
+        throw new Exception("You can only have one subscription at a time.");
+    }
+
+    // Check if user already has the same subscription active
+    if ($subscriptionID !== null) {
+        $stmt = $pdo->prepare("SELECT subscriptionID FROM users WHERE userID = ?");
+        $stmt->execute([$userID]);
+        $existingSubscription = $stmt->fetchColumn();
+
+        if ($existingSubscription == $subscriptionID) {
+            throw new Exception("You already have this subscription active.");
+        }
+    }
+
+    // Proceed with order
+    $stmt = $pdo->prepare("INSERT INTO orders (userID, orderDate, totalAmount) VALUES (?, NOW(), ?)");
+    $stmt->execute([$userID, $totalAmount]);
+    $orderID = $pdo->lastInsertId();
+
+    foreach ($cartItems as $item) {
+        addOrderItem($orderID, $item['productID'], $item['price'], $item['quantity']);
+    }
+
+    if ($subscriptionID) {
+        try {
+            userSubscription($userID, $subscriptionID);
+        } catch (Exception $e) {
+            // Cancel order if subscription activation fails
+            $pdo->prepare("DELETE FROM orderItem WHERE orderID = ?")->execute([$orderID]);
+            $pdo->prepare("DELETE FROM orders WHERE orderID = ?")->execute([$orderID]);
+            throw $e;
         }
     }
 
@@ -297,10 +382,11 @@ function placeOrder($userID)
     return $orderID;
 }
 
+
 function getSubscriptionProducts()
 {
     $pdo = getDBConnection();
-    $stmt = $pdo->prepare("SELECT * FROM product WHERE isSubscription = 1");
+    $stmt = $pdo->prepare("SELECT * FROM product WHERE isSubscription = 1 AND isDeleted = 0");
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -326,5 +412,219 @@ function getOrderHistory($userID)
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$userID]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function getGroupedOrderHistory($userID)
+{
+    // First get the raw order history
+    $orderHistory = getOrderHistory($userID);
+
+    // Group orders by orderID
+    $groupedOrders = [];
+
+    foreach ($orderHistory as $order) {
+        $orderID = $order['orderID'];
+
+        if (!isset($groupedOrders[$orderID])) {
+            $groupedOrders[$orderID] = [
+                'orderDate' => $order['orderDate'],
+                'items' => [],
+                'orderTotal' => 0
+            ];
+        }
+
+        $groupedOrders[$orderID]['items'][] = $order;
+        $groupedOrders[$orderID]['orderTotal'] += $order['totalPrice'];
+    }
+
+    return $groupedOrders;
+}
+
+function adminAddProduct($productName, $price, $category, $description, $imagePath, $isSubscription)
+{
+    $pdo = getDBConnection();
+    $stmt = $pdo->prepare("INSERT INTO product (productName, price, category, description, imagePath, isSubscription) VAlUES (?, ?, ?, ?, ?, ?)");
+    return $stmt->execute([$productName, $price, $category, $description, $imagePath, $isSubscription ? 1 : 0]);
+}
+function adminAddUser($username, $email, $password)
+{
+    $pdo = getDBConnection();
+    $subscriptionID = 0;
+    $role = 'customer';
+    $stmt = $pdo->prepare("INSERT INTO users (username, email, password, subscriptionID, role ) VAlUES (?, ?, ?, ?, ?)");
+    return $stmt->execute([$username, $email, $password, $subscriptionID, $role]);
+}
+
+function adminUpdateProduct($productID, $data)
+{
+    $pdo = getDBConnection();
+    // Get current product
+    $stmt = $pdo->prepare("SELECT * FROM product WHERE productID = ?");
+    $stmt->execute([$productID]);
+    if (!$stmt->fetch())
+        throw new Exception("Product not found");
+
+    // Build update query
+    $fields = [];
+    $values = [];
+
+    if (isset($data['productName'])) {
+        $fields[] = "productName = ?";
+        $values[] = $data['productName'];
+    }
+    if (isset($data['price'])) {
+        $fields[] = "price = ?";
+        $values[] = $data['price'];
+    }
+    if (isset($data['category'])) {
+        $fields[] = "category = ?";
+        $values[] = $data['category'];
+    }
+    if (isset($data['description'])) {
+        $fields[] = "description = ?";
+        $values[] = $data['description'];
+    }
+    if (isset($data['imagePath'])) {
+        $fields[] = "imagePath = ?";
+        $values[] = $data['imagePath'];
+    }
+    if (isset($data['isSubscription'])) {
+        $fields[] = "isSubscription = ?";
+        $values[] = $data['isSubscription'] ? 1 : 0;
+    }
+
+    if (empty($fields))
+        return false;
+
+    $values[] = $productID;
+    $query = "UPDATE product SET " . implode(", ", $fields) . " WHERE productID = ?";
+    $stmt = $pdo->prepare($query);
+    return $stmt->execute($values);
+}
+
+function adminUpdateUsers($userID, $data)
+{
+    $pdo = getDBConnection();
+    // Get current product
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE userID = ?");
+    $stmt->execute([$userID]);
+    if (!$stmt->fetch())
+        throw new Exception("user not found");
+
+    // Build update query
+    $fields = [];
+    $values = [];
+
+    if (isset($data['username'])) {
+        $fields[] = "username = ?";
+        $values[] = $data['username'];
+    }
+    if (isset($data['email'])) {
+        $fields[] = "email = ?";
+        $values[] = $data['email'];
+    }
+    if (isset($data['password'])) {
+        $fields[] = "password = ?";
+        $values[] = $data['password'];
+    }
+    if (isset($data['subscriptionID'])) {
+        $fields[] = "subscriptionID = ?";
+        $values[] = $data['subscriptionID'];
+    }
+
+
+    if (empty($fields))
+        return false;
+
+    $values[] = $userID;
+    $query = "UPDATE users SET " . implode(", ", $fields) . " WHERE userID = ?";
+    $stmt = $pdo->prepare($query);
+    return $stmt->execute($values);
+}
+function adminDeleteProduct($productID)
+{
+    $pdo = getDBConnection();
+    $stmt = $pdo->prepare("UPDATE product SET isDeleted = 1 WHERE productID = ?");
+    return $stmt->execute([$productID]);
+}
+
+function adminDeleteUser($userID)
+{
+
+    $pdo = getDBConnection();
+    $stmt = $pdo->prepare("SELECT role FROM users WHERE userID =?");
+    $stmt->execute([$userID]);
+    $user = $stmt->fetch();
+
+    if ($user && $user['role'] === 'customer') {
+        $stmt = $pdo->prepare("UPDATE users SET isDeleted = 1 WHERE userID = ?");
+        return $stmt->execute([$userID]);
+    }
+
+    return false;
+}
+
+function adminsGetAllProducts()
+{
+    $pdo = getDBConnection();
+    $sql = "SELECT * FROM product";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function adminGetAllUsers()
+{
+    $pdo = getDBConnection();
+    $sql = "SELECT * FROM users WHERE role ='customer' ";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+}
+
+function adminGetAllOrders()
+{
+    $pdo = getDBConnection();
+    $sql = "
+        SELECT o.orderID, o.userID, o.orderDate, o.totalAmount,
+               oi.productID, p.productName, oi.price, oi.quantity
+        FROM orders o
+        JOIN orderItem oi ON o.orderID = oi.orderID
+        JOIN product p ON oi.productID = p.productID
+        ORDER BY o.orderDate DESC, o.orderID DESC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function adminFilterOrders($userID = null, $date = null) {
+    $pdo = getDBConnection();
+    
+    $sql = "
+        SELECT o.orderID, o.userID, o.orderDate, o.totalAmount,
+               oi.productID, p.productName, oi.price, oi.quantity
+        FROM orders o
+        JOIN orderItem oi ON o.orderID = oi.orderID
+        JOIN product p ON oi.productID = p.productID
+        WHERE 1=1";
+    
+    $params = [];
+    
+    if ($userID) {
+        $sql .= " AND o.userID = :userID";
+        $params[':userID'] = $userID;
+    }
+    
+    if ($date) {
+        $sql .= " AND DATE(o.orderDate) = :orderDate";
+        $params[':orderDate'] = $date;
+    }
+    
+    $sql .= " ORDER BY o.orderDate DESC, o.orderID DESC";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
